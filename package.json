@@ -1,0 +1,35 @@
+{
+  "name": "thermal-printer-agent",
+  "version": "1.0.0",
+  "description": "Agente local para gestionar impresoras térmicas via API REST",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "install-service": "node scripts/install-service.js",
+    "uninstall-service": "node scripts/uninstall-service.js",
+    "test": "node scripts/test-api.js"
+  },
+  "keywords": [
+    "thermal-printer",
+    "escpos",
+    "api",
+    "agent"
+  ],
+  "author": "Your Organization",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "escpos": "^3.0.0",
+    "usb": "^1.10.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "winston": "^3.11.0",
+    "uuid": "^9.0.1",
+    "node-windows": "^1.0.0-beta.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
