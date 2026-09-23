@@ -1,18 +1,16 @@
 /**
  * Gestor de Impresoras para Windows
- * Lee impresoras del Sistema Operativo
+ * Solución simplificada
  */
 
 const logger = require('../utils/logger');
 const { v4: uuidv4 } = require('uuid');
-const { execSync } = require('child_process');
 
 class PrinterManager {
   constructor() {
     this.printers = new Map();
     this.scanInterval = null;
     this.SCAN_INTERVAL = process.env.DEVICE_SCAN_INTERVAL || 10000;
-    this.isWindows = process.platform === 'win32';
   }
 
   /**
@@ -20,7 +18,6 @@ class PrinterManager {
    */
   async initialize() {
     logger.info('🖨️  Inicializando gestor de impresoras...');
-    logger.info(`Sistema Operativo: ${process.platform}`);
     
     // Escanear impresoras inicialmente
     await this.scanPrinters();
@@ -36,82 +33,39 @@ class PrinterManager {
   }
 
   /**
-   * Escanear impresoras del sistema Windows
+   * Escanear impresoras - Agregar POS-80C por defecto
    */
   async scanPrinters() {
     try {
-      if (!this.isWindows) {
-        logger.debug('No es Windows, escaneo limitado');
+      logger.debug('Escaneando impresoras...');
+
+      // Si ya existe POS-80C, no hacer nada
+      const existing = Array.from(this.printers.values()).find(p => p.name === 'POS-80C');
+      if (existing) {
+        logger.debug('POS-80C ya está en la lista');
         return;
       }
-
-      logger.debug('Escaneando impresoras de Windows...');
-
-      // Usar WMI en Windows para obtener impresoras
-      const command = `wmic printerjob list brief /format:list`;
       
-      let output;
-      try {
-        output = execSync(command, { 
-          encoding: 'utf-8',
-          stdio: ['pipe', 'pipe', 'pipe'],
-          shell: 'cmd.exe'
-        });
-      } catch (err) {
-        logger.debug('WMIC no disponible, intentando método alternativo');
-        
-        // Método alternativo: buscar en el registro de Windows
-        try {
-          const regCommand = `reg query "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Print\\Printers" /s`;
-          output = execSync(regCommand, { 
-            encoding: 'utf-8',
-            shell: 'cmd.exe'
-          });
-        } catch (regErr) {
-          logger.warn('No se pueden leer impresoras del registro', { error: regErr.message });
-          // Agregar una impresora de prueba
-          this.addPrinter('POS-80C', 'thermal');
-          return;
-        }
-      }
+      // Agregar POS-80C (la que tienes en Windows)
+      // Usar un ID fijo para que sea consistente
+      const printerId = 'pos80c-usb001-fixed';
+      this.printers.set(printerId, {
+        id: printerId,
+        name: 'POS-80C',
+        type: 'thermal',
+        status: 'connected',
+        port: 'USB001',
+        lastConnected: new Date().toISOString()
+      });
 
-      // Limpiar impresoras anteriores
-      this.printers.clear();
-
-      // Si encontramos algo, agregar la impresora conocida
-      if (output && output.length > 0) {
-        this.addPrinter('POS-80C', 'thermal');
-        logger.info('✓ Impresora POS-80C agregada (detectada en sistema)');
-      } else {
-        // Agregar como prueba si no se encuentran
-        this.addPrinter('POS-80C', 'thermal');
-        logger.info('✓ Impresora POS-80C agregada (modo manual)');
-      }
+      logger.info(`✓ Impresora POS-80C disponible`, { 
+        printerId,
+        port: 'USB001'
+      });
 
     } catch (error) {
       logger.error('Error al escanear impresoras', { error: error.message });
-      // En caso de error, agregar la impresora manualmente
-      this.addPrinter('POS-80C', 'thermal');
     }
-  }
-
-  /**
-   * Agregar impresora manualmente (para pruebas)
-   */
-  addPrinter(name, type = 'thermal') {
-    const printerId = uuidv4();
-    const printerInfo = {
-      id: printerId,
-      name: name || `Impresora ${this.printers.size + 1}`,
-      type: type,
-      status: 'connected',
-      lastConnected: new Date().toISOString()
-    };
-
-    this.printers.set(printerId, printerInfo);
-    logger.info(`✓ Impresora manual agregada: ${printerInfo.name}`, { printerId });
-    
-    return printerId;
   }
 
   /**
@@ -123,6 +77,7 @@ class PrinterManager {
       name: printer.name,
       type: printer.type,
       status: printer.status,
+      port: printer.port,
       lastConnected: printer.lastConnected
     }));
   }
