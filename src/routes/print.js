@@ -261,7 +261,7 @@ function generateReceiptPreview(receiptData) {
   } = receiptData;
 
   let text = '';
-  const width = 42;
+  const width = 80;
 
   // Encabezado
   if (header) {
@@ -343,7 +343,7 @@ function generateReceiptPreview(receiptData) {
 
   if (total) {
     text += '='.repeat(width) + '\n';
-    const totalLine = 'TOTAL'.padEnd(width - 10) + `$${total.toFixed(2)}`.padStart(10);
+    const totalLine = 'TOTAL'.padEnd(width - 15) + `$${total.toFixed(2)}`.padStart(15);
     text += totalLine + '\n';
     text += '='.repeat(width) + '\n';
   }
