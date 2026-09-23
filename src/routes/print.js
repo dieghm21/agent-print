@@ -322,29 +322,33 @@ function generateReceiptPreview(receiptData) {
   } = receiptData;
 
   let text = '';
+  const WIDTH = 48; // Ancho estándar POS-80C en caracteres
 
   // Encabezado
   if (header) {
     text += '\n';
     if (header.title) {
-      text += header.title + '\n';
+      const title = header.title.substring(0, WIDTH);
+      const padding = Math.floor((WIDTH - title.length) / 2);
+      text += ' '.repeat(padding) + title + '\n';
     }
     if (header.subtitle) {
-      text += header.subtitle + '\n';
+      const subtitle = header.subtitle.substring(0, WIDTH);
+      const padding = Math.floor((WIDTH - subtitle.length) / 2);
+      text += ' '.repeat(padding) + subtitle + '\n';
     }
-    text += '=====================================\n';
+    text += '='.repeat(WIDTH) + '\n';
   }
 
   // Número de orden y fecha
-  if (orderNumber) {
-    text += `Orden: ${orderNumber}\n`;
-  }
-  if (dateTime) {
-    text += `${dateTime}\n`;
-  }
-
   if (orderNumber || dateTime) {
-    text += '-------------------------------------\n';
+    if (orderNumber) {
+      text += `Orden: ${orderNumber}\n`;
+    }
+    if (dateTime) {
+      text += `${dateTime}\n`;
+    }
+    text += '-'.repeat(WIDTH) + '\n';
   }
 
   // Items
@@ -355,15 +359,24 @@ function generateReceiptPreview(receiptData) {
       const unitPrice = item.price || 0;
       const itemTotal = unitPrice * qty;
 
-      text += item.name + '\n';
+      // Nombre del producto
+      const name = item.name.substring(0, WIDTH);
+      text += name + '\n';
 
-      const qtyStr = `${qty}x $${unitPrice.toFixed(2)}`;
+      // Cantidad, precio unitario y total
+      const qtyStr = `${qty}x `;
+      const priceStr = `$${unitPrice.toFixed(2)}`;
       const totalStr = `$${itemTotal.toFixed(2)}`;
-      const spacing = Math.max(1, 37 - qtyStr.length - totalStr.length);
-      text += qtyStr + ' '.repeat(spacing) + totalStr + '\n';
+      
+      // Espacio disponible
+      const availSpace = WIDTH - qtyStr.length - priceStr.length - totalStr.length - 1;
+      const line = qtyStr + ' '.repeat(Math.max(0, availSpace)) + priceStr + ' ' + totalStr;
+      text += line.substring(0, WIDTH) + '\n';
 
+      // Descripción si existe
       if (item.description) {
-        text += `  ${item.description}\n`;
+        const desc = `  ${item.description}`.substring(0, WIDTH);
+        text += desc + '\n';
       }
 
       text += '\n';
@@ -371,38 +384,38 @@ function generateReceiptPreview(receiptData) {
   }
 
   // Resumen
-  text += '-------------------------------------\n';
+  text += '-'.repeat(WIDTH) + '\n';
 
   if (subtotal || items) {
     const sub = subtotal || items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const subtotalLabel = 'Subtotal';
-    const subtotalValue = `$${sub.toFixed(2)}`;
-    const subtotalSpacing = Math.max(1, 37 - subtotalLabel.length - subtotalValue.length);
-    text += subtotalLabel + ' '.repeat(subtotalSpacing) + subtotalValue + '\n';
+    const label = 'Subtotal';
+    const value = `$${sub.toFixed(2)}`;
+    const padding = WIDTH - label.length - value.length;
+    text += (label + ' '.repeat(Math.max(0, padding)) + value).substring(0, WIDTH) + '\n';
   }
 
   if (discount && discount > 0) {
     const discountAmount = typeof discount === 'object' ? (discount.amount || 0) : discount;
-    const discountLabel = 'Descuento';
-    const discountValue = `-$${discountAmount.toFixed(2)}`;
-    const discountSpacing = Math.max(1, 37 - discountLabel.length - discountValue.length);
-    text += discountLabel + ' '.repeat(discountSpacing) + discountValue + '\n';
+    const label = 'Descuento';
+    const value = `-$${discountAmount.toFixed(2)}`;
+    const padding = WIDTH - label.length - value.length;
+    text += (label + ' '.repeat(Math.max(0, padding)) + value).substring(0, WIDTH) + '\n';
   }
 
   if (tax && tax > 0) {
-    const taxLabel = 'Impuesto';
-    const taxValue = `$${tax.toFixed(2)}`;
-    const taxSpacing = Math.max(1, 37 - taxLabel.length - taxValue.length);
-    text += taxLabel + ' '.repeat(taxSpacing) + taxValue + '\n';
+    const label = 'Impuesto';
+    const value = `$${tax.toFixed(2)}`;
+    const padding = WIDTH - label.length - value.length;
+    text += (label + ' '.repeat(Math.max(0, padding)) + value).substring(0, WIDTH) + '\n';
   }
 
   if (total) {
-    text += '=====================================\n';
-    const totalLabel = 'TOTAL';
-    const totalValue = `$${total.toFixed(2)}`;
-    const totalSpacing = Math.max(1, 37 - totalLabel.length - totalValue.length);
-    text += totalLabel + ' '.repeat(totalSpacing) + totalValue + '\n';
-    text += '=====================================\n';
+    text += '='.repeat(WIDTH) + '\n';
+    const label = 'TOTAL';
+    const value = `$${total.toFixed(2)}`;
+    const padding = WIDTH - label.length - value.length;
+    text += (label + ' '.repeat(Math.max(0, padding)) + value).substring(0, WIDTH) + '\n';
+    text += '='.repeat(WIDTH) + '\n';
   }
 
   if (paymentMethod) {
@@ -414,10 +427,14 @@ function generateReceiptPreview(receiptData) {
   if (footer) {
     if (Array.isArray(footer)) {
       for (const line of footer) {
-        text += line + '\n';
+        const footerLine = line.substring(0, WIDTH);
+        const padding = Math.floor((WIDTH - footerLine.length) / 2);
+        text += ' '.repeat(padding) + footerLine + '\n';
       }
     } else {
-      text += footer + '\n';
+      const footerLine = footer.substring(0, WIDTH);
+      const padding = Math.floor((WIDTH - footerLine.length) / 2);
+      text += ' '.repeat(padding) + footerLine + '\n';
     }
   }
 
