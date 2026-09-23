@@ -5,6 +5,7 @@
 
 const logger = require('../utils/logger');
 const printerManager = require('./printerManager');
+const windowsPrinter = require('./windowsPrinter');
 const { v4: uuidv4 } = require('uuid');
 
 class PrintQueue {
@@ -165,14 +166,30 @@ class PrintQueue {
           reject(new Error('Timeout en operación de impresión'));
         }, printTimeout);
 
-        // Simular envío a impresora
-        logger.info('Comandos ESCPOS simulados', { jobId: job.id, type: job.type });
+        // Procesar según tipo
+        try {
+          if (job.type === 'text') {
+            windowsPrinter.printText('POS-80C', job.content.text, {
+              align: job.content.align || 'left',
+              fontSize: job.content.fontSize || 1,
+              cut: job.cut !== false
+            });
+          } else if (job.type === 'receipt') {
+            windowsPrinter.printReceipt('POS-80C', job.content);
+          } else if (job.type === 'label') {
+            const text = job.content.text || '';
+            const barcode = job.content.barcode?.data || '';
+            windowsPrinter.printText('POS-80C', text + '\n' + barcode, { cut: job.cut !== false });
+          }
 
-        // En producción, aquí irían los comandos reales
-        setTimeout(() => {
           clearTimeout(timeout);
+          logger.info('✓ Impresión completada', { jobId: job.id, type: job.type });
           resolve();
-        }, 500);
+
+        } catch (printError) {
+          clearTimeout(timeout);
+          reject(printError);
+        }
 
       } catch (error) {
         reject(error);
