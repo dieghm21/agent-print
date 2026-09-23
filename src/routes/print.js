@@ -184,17 +184,6 @@ router.post('/receipt', (req, res) => {
       dateTime
     });
 
-    // Si es simulación, solo devolver la vista previa
-    if (simulate) {
-      return res.status(200).json({
-        success: true,
-        message: 'Vista previa del recibo generada',
-        simulate: true,
-        preview: previewText,
-        previewFormatted: previewText.split('\n')
-      });
-    }
-
     // Validar que la impresora existe
     if (!printerManager.getPrinter(printerId)) {
       return res.status(404).json({

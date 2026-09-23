@@ -159,6 +159,7 @@ class PrintQueue {
               cut: job.cut !== false
             });
           } else if (job.type === 'receipt') {
+            // Imprimir recibo con todos los detalles
             windowsPrinter.printReceipt('POS-80C', job.content);
           } else if (job.type === 'label') {
             const text = job.content.text || '';
