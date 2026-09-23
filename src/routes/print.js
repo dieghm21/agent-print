@@ -261,7 +261,6 @@ function generateReceiptPreview(receiptData) {
   } = receiptData;
 
   let text = '';
-  const width = 48; // Ancho estándar POS-80C (48 caracteres)
 
   // Encabezado
   if (header) {
