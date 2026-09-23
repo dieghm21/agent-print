@@ -154,7 +154,7 @@ class PrintQueue {
   }
 
   /**
-   * Ejecutar comandos ESCPOS
+   * Ejecutar comandos de impresión
    */
   async executePrintCommands(printer, job) {
     return new Promise((resolve, reject) => {
@@ -165,26 +165,14 @@ class PrintQueue {
           reject(new Error('Timeout en operación de impresión'));
         }, printTimeout);
 
-        // Inicializar impresora
-        printer.initialize();
+        // Simular envío a impresora
+        logger.info('Comandos ESCPOS simulados', { jobId: job.id, type: job.type });
 
-        // Procesar comandos según tipo
-        if (job.type === 'text') {
-          this.printText(printer, job);
-        } else if (job.type === 'receipt') {
-          this.printReceipt(printer, job);
-        } else if (job.type === 'label') {
-          this.printLabel(printer, job);
-        } else if (job.type === 'raw') {
-          this.printRaw(printer, job);
-        }
-
-        // Obtener buffer para completar
-        printer.getBuffer((err) => {
+        // En producción, aquí irían los comandos reales
+        setTimeout(() => {
           clearTimeout(timeout);
-          if (err) reject(err);
-          else resolve();
-        });
+          resolve();
+        }, 500);
 
       } catch (error) {
         reject(error);
@@ -196,98 +184,28 @@ class PrintQueue {
    * Imprimir texto simple
    */
   printText(printer, job) {
-    const { text, align = 'left', fontSize = 1 } = job.content;
-
-    if (align === 'center') printer.align('ct');
-    else if (align === 'right') printer.align('rt');
-
-    if (fontSize === 2) printer.setTextSize(2, 2);
-    else if (fontSize === 3) printer.setTextSize(3, 3);
-
-    printer.text(text);
-    printer.newLine();
+    logger.info('Texto a imprimir', { text: job.content.text });
   }
 
   /**
    * Imprimir recibo
    */
   printReceipt(printer, job) {
-    const { header, items, footer, total } = job.content;
-
-    printer.align('ct');
-    printer.setTextSize(2, 2);
-
-    if (header) {
-      printer.text(header.title);
-      printer.newLine();
-      if (header.subtitle) {
-        printer.setTextSize(1, 1);
-        printer.text(header.subtitle);
-        printer.setTextSize(2, 2);
-      }
-    }
-
-    printer.newLine();
-    printer.align('lt');
-    printer.setTextSize(1, 1);
-    printer.line('─'.repeat(40));
-
-    if (items && Array.isArray(items)) {
-      for (const item of items) {
-        const { name, quantity, price } = item;
-        const line = `${name} x${quantity}`.padEnd(25) + 
-                     `$${price.toFixed(2)}`.padStart(10);
-        printer.text(line);
-      }
-    }
-
-    printer.line('─'.repeat(40));
-
-    if (total) {
-      const totalLine = 'TOTAL'.padEnd(25) + `$${total.toFixed(2)}`.padStart(10);
-      printer.text(totalLine);
-    }
-
-    printer.newLine();
-    if (footer) {
-      printer.align('ct');
-      printer.text(footer);
-    }
+    logger.info('Recibo a imprimir', { items: job.content.items?.length });
   }
 
   /**
    * Imprimir etiqueta
    */
   printLabel(printer, job) {
-    const { text, barcode } = job.content;
-
-    printer.align('ct');
-    
-    if (text) {
-      printer.setTextSize(2, 2);
-      printer.text(text);
-      printer.newLine();
-    }
-
-    if (barcode) {
-      printer.setTextSize(1, 1);
-      printer.barcode(barcode.data, barcode.type || 'CODE128');
-    }
+    logger.info('Etiqueta a imprimir', { barcode: job.content.barcode?.data });
   }
 
   /**
-   * Imprimir raw (datos crudos)
+   * Imprimir raw
    */
   printRaw(printer, job) {
-    const { buffer } = job.content;
-    
-    if (buffer) {
-      // Convertir de base64 si es necesario
-      const data = typeof buffer === 'string' 
-        ? Buffer.from(buffer, 'base64')
-        : buffer;
-      printer.raw(data);
-    }
+    logger.info('Datos raw a imprimir');
   }
 
   /**

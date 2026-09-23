@@ -94,22 +94,7 @@ router.post('/:id/test', async (req, res) => {
     }
 
     // Intentar conectar
-    const escposPrinter = await printerManager.connectPrinter(id);
-
-    // Imprimir texto de prueba
-    escposPrinter.initialize();
-    escposPrinter.align('ct');
-    escposPrinter.setTextSize(2, 2);
-    escposPrinter.text('PRUEBA DE IMPRESION');
-    escposPrinter.newLine();
-    escposPrinter.text(new Date().toLocaleString());
-    escposPrinter.cut();
-
-    await new Promise(resolve => {
-      escposPrinter.getBuffer((err) => {
-        resolve();
-      });
-    });
+    await printerManager.connectPrinter(id);
 
     res.json({
       success: true,

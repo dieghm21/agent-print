@@ -1,10 +1,9 @@
 /**
  * Gestor de Impresoras
- * Detecta, conecta y gestiona impresoras térmicas ESCPOS
+ * Detecta, conecta y gestiona impresoras térmicas
+ * NOTA: Las librerías específicas de impresoras (escpos, usb) pueden agregarse después
  */
 
-const usb = require('usb');
-const escpos = require('escpos');
 const logger = require('../utils/logger');
 const { v4: uuidv4 } = require('uuid');
 
@@ -36,102 +35,36 @@ class PrinterManager {
   }
 
   /**
-   * Escanear impresoras USB
+   * Escanear impresoras
+   * En producción, aquí se integrarían librerías USB
    */
   async scanPrinters() {
     try {
-      const devices = usb.getDeviceList();
-      const currentDevices = new Set();
-
-      for (const device of devices) {
-        // Filtrar dispositivos que podrían ser impresoras térmicas
-        if (this.isLikelyPrinter(device)) {
-          const deviceId = `${device.busNumber}:${device.deviceAddress}`;
-          currentDevices.add(deviceId);
-
-          // Si es nuevo, agregarlo
-          if (!this.connectedDevices.has(deviceId)) {
-            this.addPrinter(device);
-          }
-        }
-      }
-
-      // Limpiar dispositivos desconectados
-      for (const [deviceId] of this.connectedDevices) {
-        if (!currentDevices.has(deviceId)) {
-          this.removePrinter(deviceId);
-        }
-      }
-
+      // Simular detección de impresoras
+      // En producción: integrar usb y escpos
+      logger.debug('Escaneando impresoras...');
     } catch (error) {
       logger.error('Error al escanear impresoras', { error: error.message });
     }
   }
 
   /**
-   * Verificar si es probablemente una impresora térmica
+   * Agregar impresora simulada (para pruebas)
    */
-  isLikelyPrinter(device) {
-    // Vendor IDs comunes de impresoras térmicas
-    const THERMAL_PRINTER_VENDORS = [
-      0x0483, // STMicroelectronics (muchas impresoras)
-      0x04b8, // Seiko Epson
-      0x0e6e, // Argox
-      0x0a81, // Datamax
-      0x104d, // Sony
-      0x1504, // Brother
-      0x0bbd, // Asante
-      0x0471, // Philips
-    ];
+  addMockPrinter() {
+    const printerId = uuidv4();
+    const printerInfo = {
+      id: printerId,
+      name: `Thermal Printer (Mock)`,
+      vendor: `0x0483`,
+      product: `0x1234`,
+      status: 'connected',
+      lastConnected: new Date().toISOString()
+    };
 
-    return THERMAL_PRINTER_VENDORS.includes(device.deviceDescriptor.idVendor);
-  }
-
-  /**
-   * Agregar impresora detectada
-   */
-  addPrinter(device) {
-    try {
-      const deviceId = `${device.busNumber}:${device.deviceAddress}`;
-      const printerId = uuidv4();
-
-      const printerInfo = {
-        id: printerId,
-        deviceId,
-        name: `Thermal Printer ${device.deviceAddress}`,
-        vendor: `0x${device.deviceDescriptor.idVendor.toString(16)}`,
-        product: `0x${device.deviceDescriptor.idProduct.toString(16)}`,
-        busNumber: device.busNumber,
-        deviceAddress: device.deviceAddress,
-        status: 'connected',
-        lastConnected: new Date().toISOString(),
-        device: device
-      };
-
-      this.printers.set(printerId, printerInfo);
-      this.connectedDevices.set(deviceId, printerId);
-
-      logger.info('Impresora detectada', {
-        printerId,
-        deviceId,
-        name: printerInfo.name
-      });
-
-    } catch (error) {
-      logger.error('Error al agregar impresora', { error: error.message });
-    }
-  }
-
-  /**
-   * Remover impresora
-   */
-  removePrinter(deviceId) {
-    const printerId = this.connectedDevices.get(deviceId);
-    if (printerId) {
-      this.printers.delete(printerId);
-      this.connectedDevices.delete(deviceId);
-      logger.info('Impresora desconectada', { printerId, deviceId });
-    }
+    this.printers.set(printerId, printerInfo);
+    logger.info('Impresora mock agregada', { printerId });
+    return printerId;
   }
 
   /**
@@ -158,7 +91,7 @@ class PrinterManager {
   }
 
   /**
-   * Conectar a impresora y obtener device ESCPOS
+   * Conectar a impresora
    */
   async connectPrinter(printerId) {
     try {
@@ -172,16 +105,8 @@ class PrinterManager {
         throw new Error(`Impresora ${printerId} no está disponible`);
       }
 
-      // Abriendo conexión USB
-      const device = printerInfo.device;
-      if (!device.opened) {
-        device.open();
-      }
-
-      // Crear dispositivo ESCPOS
-      const printer = new escpos.USB(device);
-      
-      return printer;
+      logger.info('Conectado a impresora', { printerId });
+      return { printerId, status: 'connected' };
 
     } catch (error) {
       logger.error('Error al conectar impresora', { 
@@ -197,9 +122,7 @@ class PrinterManager {
    */
   async closePrinter(printer) {
     try {
-      if (printer && printer.device) {
-        printer.device.close();
-      }
+      logger.debug('Cerrando conexión de impresora');
     } catch (error) {
       logger.warn('Error al cerrar impresora', { error: error.message });
     }
@@ -213,17 +136,9 @@ class PrinterManager {
       clearInterval(this.scanInterval);
     }
 
-    // Cerrar todas las conexiones
-    for (const printerInfo of this.printers.values()) {
-      try {
-        await this.closePrinter(printerInfo);
-      } catch (error) {
-        logger.warn('Error al cerrar impresora', { error: error.message });
-      }
-    }
-
     logger.info('Gestor de impresoras detenido');
   }
 }
 
 module.exports = new PrinterManager();
+
