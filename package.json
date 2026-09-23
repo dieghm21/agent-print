@@ -22,8 +22,7 @@
     "dotenv": "^16.3.1",
     "winston": "^3.11.0",
     "uuid": "^9.0.1",
-    "node-escpos-windows": "^1.1.4",
-    "usb": "^1.10.2"
+    "thermal-printer": "^1.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
