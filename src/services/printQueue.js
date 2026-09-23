@@ -97,24 +97,8 @@ class PrintQueue {
 
       logger.info('Procesando trabajo de impresión', { jobId: job.id });
 
-      const printer = await printerManager.connectPrinter(job.printerId);
-
-      // Ejecutar comando ESCPOS
-      await this.executePrintCommands(printer, job);
-
-      // Cortar papel
-      if (job.cut !== false) {
-        printer.cut();
-      }
-
-      await new Promise(resolve => {
-        printer.getBuffer((err, buffer) => {
-          if (err) {
-            logger.error('Error al obtener buffer', { error: err.message });
-          }
-          resolve();
-        });
-      });
+      // Ejecutar comandos de impresión (windowsPrinter maneja todo)
+      await this.executePrintCommands(job);
 
       job.status = 'completed';
       job.completedAt = new Date().toISOString();
@@ -157,7 +141,7 @@ class PrintQueue {
   /**
    * Ejecutar comandos de impresión
    */
-  async executePrintCommands(printer, job) {
+  async executePrintCommands(job) {
     return new Promise((resolve, reject) => {
       try {
         const printTimeout = parseInt(process.env.PRINT_TIMEOUT) || 30000;
