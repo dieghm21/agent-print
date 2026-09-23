@@ -22,7 +22,7 @@
     "dotenv": "^16.3.1",
     "winston": "^3.11.0",
     "uuid": "^9.0.1",
-    "thermal-printer": "^1.0.0"
+    "printer": "^0.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
