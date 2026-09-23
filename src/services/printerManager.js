@@ -1,16 +1,18 @@
 /**
- * Gestor de Impresoras
- * Compatible con Windows, macOS y Linux
+ * Gestor de Impresoras para Windows
+ * Lee impresoras del Sistema Operativo
  */
 
 const logger = require('../utils/logger');
 const { v4: uuidv4 } = require('uuid');
+const { execSync } = require('child_process');
 
 class PrinterManager {
   constructor() {
     this.printers = new Map();
     this.scanInterval = null;
     this.SCAN_INTERVAL = process.env.DEVICE_SCAN_INTERVAL || 10000;
+    this.isWindows = process.platform === 'win32';
   }
 
   /**
@@ -18,6 +20,7 @@ class PrinterManager {
    */
   async initialize() {
     logger.info('🖨️  Inicializando gestor de impresoras...');
+    logger.info(`Sistema Operativo: ${process.platform}`);
     
     // Escanear impresoras inicialmente
     await this.scanPrinters();
@@ -33,12 +36,73 @@ class PrinterManager {
   }
 
   /**
-   * Escanear impresoras
+   * Escanear impresoras del sistema Windows
    */
   async scanPrinters() {
     try {
-      logger.debug('Escaneando impresoras...');
-      // La detección real dependerá del SO y librerías específicas
+      if (!this.isWindows) {
+        logger.debug('No es Windows, escaneo limitado');
+        return;
+      }
+
+      logger.debug('Escaneando impresoras de Windows...');
+
+      // Ejecutar comando PowerShell para obtener impresoras
+      const command = `powershell -Command "Get-Printer | ConvertTo-Json -AsArray"`;
+      
+      let output;
+      try {
+        output = execSync(command, { encoding: 'utf-8' });
+      } catch (err) {
+        logger.warn('Error ejecutando Get-Printer', { error: err.message });
+        return;
+      }
+
+      if (!output || output.trim() === '') {
+        logger.warn('No se obtuvieron impresoras de Windows');
+        return;
+      }
+
+      // Parsear JSON
+      let printerList = [];
+      try {
+        printerList = JSON.parse(output);
+      } catch (err) {
+        logger.error('Error parseando JSON de impresoras', { error: err.message });
+        return;
+      }
+
+      // Limpiar impresoras anteriores
+      this.printers.clear();
+
+      // Si es un objeto único, convertir a array
+      if (!Array.isArray(printerList)) {
+        printerList = [printerList];
+      }
+
+      // Agregar cada impresora
+      for (const printer of printerList) {
+        const printerId = uuidv4();
+        
+        this.printers.set(printerId, {
+          id: printerId,
+          name: printer.Name || 'Impresora Desconocida',
+          type: printer.Type || 'Unknown',
+          status: 'connected',
+          portName: printer.PortName,
+          driverName: printer.DriverName,
+          lastConnected: new Date().toISOString()
+        });
+
+        logger.info(`✓ Impresora detectada: ${printer.Name}`, { 
+          printerId,
+          port: printer.PortName,
+          type: printer.Type
+        });
+      }
+
+      logger.info(`📋 Total impresoras encontradas: ${this.printers.size}`);
+
     } catch (error) {
       logger.error('Error al escanear impresoras', { error: error.message });
     }
@@ -58,7 +122,7 @@ class PrinterManager {
     };
 
     this.printers.set(printerId, printerInfo);
-    logger.info(`✓ Impresora agregada: ${printerInfo.name}`, { printerId });
+    logger.info(`✓ Impresora manual agregada: ${printerInfo.name}`, { printerId });
     
     return printerId;
   }
