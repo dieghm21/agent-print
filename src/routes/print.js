@@ -261,7 +261,7 @@ function generateReceiptPreview(receiptData) {
   } = receiptData;
 
   let text = '';
-  const width = 80;
+  const width = 48; // Ancho estándar POS-80C (48 caracteres)
 
   // Encabezado
   if (header) {
@@ -343,7 +343,7 @@ function generateReceiptPreview(receiptData) {
 
   if (total) {
     text += '='.repeat(width) + '\n';
-    const totalLine = 'TOTAL'.padEnd(width - 15) + `$${total.toFixed(2)}`.padStart(15);
+    const totalLine = 'TOTAL'.padEnd(width - 12) + `$${total.toFixed(2)}`.padStart(12);
     text += totalLine + '\n';
     text += '='.repeat(width) + '\n';
   }

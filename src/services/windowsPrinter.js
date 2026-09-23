@@ -85,7 +85,7 @@ class WindowsPrinter {
       } = receiptData;
 
       let text = '';
-      const width = 80; // Ancho completo para ticket de 80mm
+      const width = 48; // Ancho estándar POS-80C (48 caracteres)
 
       // ===== ENCABEZADO =====
       if (header) {
@@ -156,27 +156,27 @@ class WindowsPrinter {
       // Subtotal
       if (subtotal || items) {
         const sub = subtotal || items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const subtotalLine = 'Subtotal'.padEnd(width - 15) + `$${sub.toFixed(2)}`.padStart(15);
+        const subtotalLine = 'Subtotal'.padEnd(width - 12) + `$${sub.toFixed(2)}`.padStart(12);
         text += subtotalLine + '\n';
       }
 
       // Descuento
       if (discount && discount > 0) {
         const discountAmount = typeof discount === 'object' ? (discount.amount || 0) : discount;
-        const discountLine = `Descuento`.padEnd(width - 15) + `-$${discountAmount.toFixed(2)}`.padStart(15);
+        const discountLine = `Descuento`.padEnd(width - 12) + `-$${discountAmount.toFixed(2)}`.padStart(12);
         text += discountLine + '\n';
       }
 
       // Impuesto
       if (tax && tax > 0) {
-        const taxLine = 'Impuesto'.padEnd(width - 15) + `$${tax.toFixed(2)}`.padStart(15);
+        const taxLine = 'Impuesto'.padEnd(width - 12) + `$${tax.toFixed(2)}`.padStart(12);
         text += taxLine + '\n';
       }
 
       // Total
       if (total) {
         text += '='.repeat(width) + '\n';
-        const totalLine = 'TOTAL'.padEnd(width - 15) + `$${total.toFixed(2)}`.padStart(15);
+        const totalLine = 'TOTAL'.padEnd(width - 12) + `$${total.toFixed(2)}`.padStart(12);
         text += totalLine + '\n';
         text += '='.repeat(width) + '\n';
       }
