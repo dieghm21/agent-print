@@ -1,0 +1,48 @@
+{
+  "printerId": "pos80c-usb001-fixed",
+  "header": {
+    "title": "☕ CAFÉ AROMA",
+    "subtitle": "Calle 123, Centro - Tel: (555) 123-4567"
+  },
+  "orderNumber": "00001",
+  "dateTime": "2024-01-15 14:30:45",
+  "items": [
+    {
+      "name": "Café Espresso Grande",
+      "description": "Bebida caliente",
+      "quantity": 2,
+      "price": 4.50
+    },
+    {
+      "name": "Croissant de Chocolate",
+      "description": "Recién hecho",
+      "quantity": 1,
+      "price": 3.99
+    },
+    {
+      "name": "Jugo Natural",
+      "description": "Naranja fresca",
+      "quantity": 1,
+      "price": 3.50
+    },
+    {
+      "name": "Sándwich Premium",
+      "description": "Jamón, queso y tomate",
+      "quantity": 1,
+      "price": 7.99
+    }
+  ],
+  "subtotal": 24.48,
+  "tax": 2.45,
+  "total": 26.93,
+  "paymentMethod": "Tarjeta de Crédito",
+  "footer": [
+    "===============================",
+    "¡Gracias por su compra!",
+    "Vuelva pronto a Café Aroma",
+    "===============================",
+    "Somos amigo del ambiente",
+    "Recicla este comprobante"
+  ],
+  "cut": true
+}

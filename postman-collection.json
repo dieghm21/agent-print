@@ -1,0 +1,161 @@
+{
+  "info": {
+    "name": "Thermal Printer Agent",
+    "description": "Colección para probar el agente de impresoras térmicas",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Printers",
+      "item": [
+        {
+          "name": "Get All Printers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3002/api/printers",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "printers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Print",
+      "item": [
+        {
+          "name": "Receipt - Simulate (Vista Previa)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"printerId\": \"pos80c-usb001-fixed\",\n  \"header\": {\n    \"title\": \"☕ CAFÉ AROMA\",\n    \"subtitle\": \"Calle 123, Centro - Tel: (555) 123-4567\"\n  },\n  \"orderNumber\": \"00001\",\n  \"dateTime\": \"2024-01-15 14:30:45\",\n  \"items\": [\n    {\n      \"name\": \"Café Espresso Grande\",\n      \"description\": \"Bebida caliente\",\n      \"quantity\": 2,\n      \"price\": 4.50\n    },\n    {\n      \"name\": \"Croissant de Chocolate\",\n      \"description\": \"Recién hecho\",\n      \"quantity\": 1,\n      \"price\": 3.99\n    },\n    {\n      \"name\": \"Jugo Natural\",\n      \"description\": \"Naranja fresca\",\n      \"quantity\": 1,\n      \"price\": 3.50\n    },\n    {\n      \"name\": \"Sándwich Premium\",\n      \"description\": \"Jamón, queso y tomate\",\n      \"quantity\": 1,\n      \"price\": 7.99\n    }\n  ],\n  \"subtotal\": 24.48,\n  \"tax\": 2.45,\n  \"total\": 26.93,\n  \"paymentMethod\": \"Tarjeta de Crédito\",\n  \"footer\": [\n    \"===============================\" ,\n    \"¡Gracias por su compra!\",\n    \"Vuelva pronto a Café Aroma\",\n    \"===============================\" ,\n    \"Somos amigo del ambiente\",\n    \"Recicla este comprobante\"\n  ],\n  \"cut\": true,\n  \"simulate\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/print/receipt",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "print", "receipt"]
+            }
+          }
+        },
+        {
+          "name": "Receipt - Print Real",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"printerId\": \"pos80c-usb001-fixed\",\n  \"header\": {\n    \"title\": \"☕ CAFÉ AROMA\",\n    \"subtitle\": \"Calle 123, Centro - Tel: (555) 123-4567\"\n  },\n  \"orderNumber\": \"00001\",\n  \"dateTime\": \"2024-01-15 14:30:45\",\n  \"items\": [\n    {\n      \"name\": \"Café Espresso Grande\",\n      \"description\": \"Bebida caliente\",\n      \"quantity\": 2,\n      \"price\": 4.50\n    },\n    {\n      \"name\": \"Croissant de Chocolate\",\n      \"description\": \"Recién hecho\",\n      \"quantity\": 1,\n      \"price\": 3.99\n    },\n    {\n      \"name\": \"Jugo Natural\",\n      \"description\": \"Naranja fresca\",\n      \"quantity\": 1,\n      \"price\": 3.50\n    },\n    {\n      \"name\": \"Sándwich Premium\",\n      \"description\": \"Jamón, queso y tomate\",\n      \"quantity\": 1,\n      \"price\": 7.99\n    }\n  ],\n  \"subtotal\": 24.48,\n  \"tax\": 2.45,\n  \"total\": 26.93,\n  \"paymentMethod\": \"Tarjeta de Crédito\",\n  \"footer\": [\n    \"===============================\" ,\n    \"¡Gracias por su compra!\",\n    \"Vuelva pronto a Café Aroma\",\n    \"===============================\" ,\n    \"Somos amigo del ambiente\",\n    \"Recicla este comprobante\"\n  ],\n  \"cut\": true,\n  \"simulate\": false\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/print/receipt",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "print", "receipt"]
+            }
+          }
+        },
+        {
+          "name": "Print Text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"printerId\": \"pos80c-usb001-fixed\",\n  \"text\": \"Hola Mundo!\\nEsta es una prueba\\nde impresora térmica.\",\n  \"align\": \"center\",\n  \"fontSize\": 2,\n  \"cut\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3002/api/print/text",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "print", "text"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "Get Job Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3002/api/print/job/{{jobId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "print", "job", "{{jobId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Queue Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3002/api/print/stats",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "print", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Get Health Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3002/api/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3002",
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "jobId",
+      "value": "uuid-del-job",
+      "type": "string"
+    }
+  ]
+}
