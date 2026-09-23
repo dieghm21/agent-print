@@ -123,18 +123,19 @@ router.post('/:id/test', async (req, res) => {
  */
 router.post('/scan/now', async (req, res) => {
   try {
+    logger.info('Escaneo manual solicitado...');
     await printerManager.scanPrinters();
 
     const printers = printerManager.getPrinters();
 
     res.json({
       success: true,
-      message: 'Escaneo completado',
+      message: `Escaneo completado. ${printers.length} impresora(s) detectada(s)`,
       count: printers.length,
       printers
     });
 
-    logger.info('Escaneo manual de impresoras completado');
+    logger.info('Escaneo manual completado', { count: printers.length });
 
   } catch (error) {
     logger.error('Error al escanear impresoras', { error: error.message });
