@@ -626,6 +626,11 @@ function escapeHtml(text) {
   };
   return text.replace(/[&<>"']/g, m => map[m]);
 }
+
+/**
+ * Generar vista previa en texto del recibo
+ */
+function generateReceiptPreview(receiptData) {
   const {
     header,
     items,
