@@ -1,93 +1,95 @@
 /**
  * Integración con impresoras de Windows
- * Usa Windows Print Spooler directamente
+ * Usa acceso directo USB con escpos-usb (después de instalar WinUSB con Zadig)
  */
 
-const { execSync } = require('child_process');
 const logger = require('../utils/logger');
+let escpos;
+let usbPrinter;
+
+// Intentar cargar escpos (puede no estar disponible en macOS)
+try {
+  escpos = require('escpos');
+  usbPrinter = require('escpos-usb');
+  escpos.USB = usbPrinter;
+} catch (err) {
+  logger.warn('escpos-usb no disponible (esperado en macOS)', { error: err.message });
+  escpos = null;
+}
 
 class WindowsPrinter {
   /**
-   * Imprimir en Windows usando comandos ESCPOS correctos
+   * Conectar a impresora térmica por USB
    */
-  static printText(printerName, text, options = {}) {
+  static async connectUSB() {
     try {
-      const fs = require('fs');
-      const { execSync } = require('child_process');
+      if (!escpos) {
+        throw new Error('escpos-usb no está disponible. Instala con: npm install escpos escpos-usb');
+      }
+
+      // Buscar impresoras USB conectadas
+      const devices = escpos.USB.findPrinter();
       
-      // Crear buffer ESCPOS
-      let buffer = Buffer.alloc(0);
-      
-      // ESC @ - Inicializar impresora
-      buffer = Buffer.concat([buffer, Buffer.from('\x1B\x40', 'binary')]);
-      
-      // Texto sin procesamiento - la impresora interpreta automáticamente
-      buffer = Buffer.concat([buffer, Buffer.from(text, 'utf8')]);
-      
+      if (!devices || devices.length === 0) {
+        throw new Error('No se encontró impresora térmica USB conectada');
+      }
+
+      // Conectar a la primera impresora encontrada
+      const device = new escpos.USB(devices[0]);
+      const printer = new escpos.Printer(device);
+
+      return { device, printer };
+    } catch (error) {
+      logger.error('Error conectando a impresora USB', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Imprimir en Windows usando acceso directo USB
+   */
+  static async printText(printerName, text, options = {}) {
+    let device = null;
+    let printer = null;
+
+    try {
+      const connection = await this.connectUSB();
+      device = connection.device;
+      printer = connection.printer;
+
+      // Inicializar impresora
+      printer.initialize();
+
+      // Enviar texto
+      printer.text(text);
+
       // Dos saltos de línea
-      buffer = Buffer.concat([buffer, Buffer.from('\n\n', 'utf8')]);
-      
+      printer.feed(2);
+
       // Corte si está habilitado
       if (options.cut !== false) {
-        buffer = Buffer.concat([buffer, Buffer.from('\x1D\x56\x42', 'binary')]);
+        printer.cut();
       }
 
-      // Guardar como archivo binario
-      const tmpFile = `C:\\Temp\\print_${Date.now()}.bin`;
-      
-      try {
-        execSync('mkdir C:\\Temp', { stdio: 'ignore' });
-      } catch (err) {
-        // Ya existe
-      }
+      // Ejecutar comandos enviados
+      await printer.close();
 
-      fs.writeFileSync(tmpFile, buffer);
-
-      // Enviar directamente a impresora usando PowerShell con encoding binary
-      const psCommand = `
-        $printerName = "${printerName}"
-        $filePath = "${tmpFile}"
-        $printer = New-Object System.Drawing.Printing.PrinterSettings
-        $printer.PrinterName = $printerName
-        
-        if (!$printer.IsValid) {
-          throw "Impresora no encontrada: $printerName"
-        }
-        
-        $rawFile = [System.IO.File]::ReadAllBytes($filePath)
-        $printer = [System.Printing.PrintQueue]::OpenDefaultPrintQueue()
-        
-        # Enviar datos raw a la impresora
-        $connection = $printer.FullName
-        
-        # Usar net.exe para enviar datos raw
-        cmd /c copy /b "${tmpFile}" "${printerName}"
-      `;
-
-      const tmpPs = `C:\\Temp\\print_${Date.now()}.ps1`;
-      fs.writeFileSync(tmpPs, psCommand);
-
-      try {
-        execSync(`powershell -ExecutionPolicy Bypass -File "${tmpPs}"`, { 
-          shell: 'cmd.exe',
-          stdio: 'pipe'
-        });
-      } finally {
-        try { fs.unlinkSync(tmpPs); } catch (e) {}
-      }
-
-      logger.info(`✓ Impresión enviada a ${printerName}`);
-
-      try {
-        fs.unlinkSync(tmpFile);
-      } catch (err) {
-        logger.debug('No se pudo eliminar archivo temporal', { file: tmpFile });
-      }
+      logger.info(`✓ Impresión enviada por USB`);
 
       return true;
 
     } catch (error) {
-      logger.error('Error al imprimir', { error: error.message });
+      logger.error('Error al imprimir por USB', { error: error.message });
+      
+      // Intentar cerrar conexión si falla
+      if (device) {
+        try {
+          await device.close();
+        } catch (err) {
+          logger.debug('Error cerrando dispositivo', { error: err.message });
+        }
+      }
+
       throw error;
     }
   }
@@ -95,7 +97,10 @@ class WindowsPrinter {
   /**
    * Imprimir recibo con formato profesional POS
    */
-  static printReceipt(printerName, receiptData) {
+  static async printReceipt(printerName, receiptData) {
+    let device = null;
+    let printer = null;
+
     try {
       const { 
         header, 
@@ -226,7 +231,8 @@ class WindowsPrinter {
 
       text += '\n';
 
-      return this.printText(printerName, text, { cut });
+      // Usar printText para enviar por USB
+      return await this.printText(printerName, text, { cut });
 
     } catch (error) {
       logger.error('Error al imprimir recibo', { error: error.message });

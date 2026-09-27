@@ -142,44 +142,44 @@ class PrintQueue {
    * Ejecutar comandos de impresión
    */
   async executePrintCommands(job) {
-    return new Promise((resolve, reject) => {
-      try {
-        const printTimeout = parseInt(process.env.PRINT_TIMEOUT) || 30000;
+    try {
+      const printTimeout = parseInt(process.env.PRINT_TIMEOUT) || 30000;
 
-        const timeout = setTimeout(() => {
-          reject(new Error('Timeout en operación de impresión'));
-        }, printTimeout);
-
-        // Procesar según tipo
-        try {
-          if (job.type === 'text') {
-            windowsPrinter.printText('POS-80C', job.content.text, {
-              align: job.content.align || 'left',
-              fontSize: job.content.fontSize || 1,
-              cut: job.cut !== false
-            });
-          } else if (job.type === 'receipt') {
-            // Imprimir recibo con todos los detalles
-            windowsPrinter.printReceipt('POS-80C', job.content);
-          } else if (job.type === 'label') {
-            const text = job.content.text || '';
-            const barcode = job.content.barcode?.data || '';
-            windowsPrinter.printText('POS-80C', text + '\n' + barcode, { cut: job.cut !== false });
-          }
-
-          clearTimeout(timeout);
-          logger.info('✓ Impresión completada', { jobId: job.id, type: job.type });
-          resolve();
-
-        } catch (printError) {
-          clearTimeout(timeout);
-          reject(printError);
+      // Crear promesa con timeout
+      const printPromise = (async () => {
+        if (job.type === 'text') {
+          await windowsPrinter.printText('POS-80C', job.content.text, {
+            align: job.content.align || 'left',
+            fontSize: job.content.fontSize || 1,
+            cut: job.cut !== false
+          });
+        } else if (job.type === 'receipt') {
+          // Imprimir recibo con todos los detalles
+          await windowsPrinter.printReceipt('POS-80C', job.content);
+        } else if (job.type === 'label') {
+          const text = job.content.text || '';
+          const barcode = job.content.barcode?.data || '';
+          await windowsPrinter.printText('POS-80C', text + '\n' + barcode, { cut: job.cut !== false });
+        } else if (job.type === 'raw') {
+          // Para raw, usar printText con los datos
+          const buffer = job.content.buffer;
+          await windowsPrinter.printText('POS-80C', buffer, { cut: job.cut !== false });
         }
+      })();
 
-      } catch (error) {
-        reject(error);
-      }
-    });
+      // Ejecutar con timeout
+      await Promise.race([
+        printPromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout en operación de impresión')), printTimeout)
+        )
+      ]);
+
+      logger.info('✓ Impresión completada', { jobId: job.id, type: job.type });
+
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
