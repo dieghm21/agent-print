@@ -1,6 +1,6 @@
 /**
  * Integración con impresoras de Windows
- * Usa Windows Print Spooler directamente con ESCPOS
+ * Usa Windows Print Spooler directamente
  */
 
 const { execSync } = require('child_process');
@@ -8,54 +8,76 @@ const logger = require('../utils/logger');
 
 class WindowsPrinter {
   /**
-   * Imprimir en Windows usando Print Spooler
+   * Imprimir en Windows usando comandos ESCPOS correctos
    */
   static printText(printerName, text, options = {}) {
     try {
-      const { align = 'left', fontSize = 1, cut = true } = options;
-
-      // Crear contenido ESCPOS
-      let escposData = '\x1B\x40'; // ESC @ - Inicializar impresora
-      
-      // ESC ! n - Selecciona modo de impresión (tamaño de fuente)
-      let fontMode = 0x00; // Normal por defecto
-      if (fontSize === 2) fontMode = 0x11; // 2x alto, 2x ancho
-      else if (fontSize === 3) fontMode = 0x22; // 3x alto, 3x ancho
-      
-      escposData += String.fromCharCode(0x1B, 0x21, fontMode);
-
-      // ESC a n - Alineación (0=izquierda, 1=centro, 2=derecha)
-      let alignCode = 0;
-      if (align === 'center') alignCode = 1;
-      else if (align === 'right') alignCode = 2;
-      escposData += String.fromCharCode(0x1B, 0x61, alignCode);
-
-      // Texto
-      escposData += text + '\n\n';
-
-      // Corte si está habilitado
-      if (cut) escposData += '\x1D\x56\x42'; // GS V 42 - Partial cut
-
-      // Guardarlo en un archivo temporal
       const fs = require('fs');
-      const tmpFile = `C:\\Temp\\print_${Date.now()}.txt`;
+      const { execSync } = require('child_process');
       
-      // Crear directorio Temp si no existe
+      // Crear buffer ESCPOS
+      let buffer = Buffer.alloc(0);
+      
+      // ESC @ - Inicializar impresora
+      buffer = Buffer.concat([buffer, Buffer.from('\x1B\x40', 'binary')]);
+      
+      // Texto sin procesamiento - la impresora interpreta automáticamente
+      buffer = Buffer.concat([buffer, Buffer.from(text, 'utf8')]);
+      
+      // Dos saltos de línea
+      buffer = Buffer.concat([buffer, Buffer.from('\n\n', 'utf8')]);
+      
+      // Corte si está habilitado
+      if (options.cut !== false) {
+        buffer = Buffer.concat([buffer, Buffer.from('\x1D\x56\x42', 'binary')]);
+      }
+
+      // Guardar como archivo binario
+      const tmpFile = `C:\\Temp\\print_${Date.now()}.bin`;
+      
       try {
         execSync('mkdir C:\\Temp', { stdio: 'ignore' });
       } catch (err) {
         // Ya existe
       }
 
-      fs.writeFileSync(tmpFile, escposData);
+      fs.writeFileSync(tmpFile, buffer);
 
-      // Enviar a impresora usando Print Spooler
-      const command = `powershell -Command "Get-Content '${tmpFile}' | Out-Printer -Name '${printerName}'"`;
-      execSync(command, { shell: 'cmd.exe' });
+      // Enviar directamente a impresora usando PowerShell con encoding binary
+      const psCommand = `
+        $printerName = "${printerName}"
+        $filePath = "${tmpFile}"
+        $printer = New-Object System.Drawing.Printing.PrinterSettings
+        $printer.PrinterName = $printerName
+        
+        if (!$printer.IsValid) {
+          throw "Impresora no encontrada: $printerName"
+        }
+        
+        $rawFile = [System.IO.File]::ReadAllBytes($filePath)
+        $printer = [System.Printing.PrintQueue]::OpenDefaultPrintQueue()
+        
+        # Enviar datos raw a la impresora
+        $connection = $printer.FullName
+        
+        # Usar net.exe para enviar datos raw
+        cmd /c copy /b "${tmpFile}" "${printerName}"
+      `;
+
+      const tmpPs = `C:\\Temp\\print_${Date.now()}.ps1`;
+      fs.writeFileSync(tmpPs, psCommand);
+
+      try {
+        execSync(`powershell -ExecutionPolicy Bypass -File "${tmpPs}"`, { 
+          shell: 'cmd.exe',
+          stdio: 'pipe'
+        });
+      } finally {
+        try { fs.unlinkSync(tmpPs); } catch (e) {}
+      }
 
       logger.info(`✓ Impresión enviada a ${printerName}`);
 
-      // Limpiar archivo temporal
       try {
         fs.unlinkSync(tmpFile);
       } catch (err) {

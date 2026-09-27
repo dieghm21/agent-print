@@ -305,9 +305,327 @@ router.get('/stats', (req, res) => {
 });
 
 /**
- * Generar vista previa de recibo
+ * POST /api/print/receipt/html
+ * Generar HTML del recibo para imprimir desde navegador
  */
-function generateReceiptPreview(receiptData) {
+router.post('/receipt/html', (req, res) => {
+  try {
+    const { 
+      header, 
+      items, 
+      subtotal,
+      discount,
+      tax,
+      total, 
+      footer, 
+      paymentMethod,
+      orderNumber,
+      dateTime
+    } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'items es requerido' });
+    }
+
+    const html = generateReceiptHTML({
+      header,
+      items,
+      subtotal,
+      discount,
+      tax,
+      total,
+      footer,
+      paymentMethod,
+      orderNumber,
+      dateTime
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+
+  } catch (error) {
+    logger.error('Error al generar HTML', { error: error.message });
+    res.status(500).json({ success: false, error: 'Error al generar HTML' });
+  }
+});
+
+/**
+ * Generar HTML del recibo para impresora térmica
+ */
+function generateReceiptHTML(receiptData) {
+  const {
+    header,
+    items,
+    subtotal,
+    discount = 0,
+    tax = 0,
+    total,
+    footer,
+    paymentMethod,
+    orderNumber,
+    dateTime
+  } = receiptData;
+
+  let html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recibo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            width: 80mm;
+            margin: 0 auto;
+            padding: 0;
+            background: white;
+        }
+        
+        @page {
+            size: 80mm auto;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .receipt {
+            width: 100%;
+            padding: 0;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+        
+        .separator-line {
+            display: block;
+            margin: 5px 0;
+        }
+        
+        .order-info {
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+        
+        .items {
+            margin: 10px 0;
+        }
+        
+        .item {
+            margin-bottom: 10px;
+        }
+        
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .item-qty-price {
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .item-description {
+            font-size: 10px;
+            color: #666;
+            margin-top: 2px;
+            margin-left: 10px;
+        }
+        
+        .summary {
+            margin: 10px 0;
+            font-size: 11px;
+        }
+        
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+        
+        .summary-label {
+            flex: 1;
+        }
+        
+        .summary-value {
+            text-align: right;
+            min-width: 60px;
+        }
+        
+        .total-line {
+            font-weight: bold;
+            font-size: 13px;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 3px 0;
+            margin: 5px 0;
+        }
+        
+        .payment-method {
+            font-size: 11px;
+            margin: 5px 0;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+        
+        .footer-line {
+            margin: 3px 0;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                width: 80mm;
+            }
+            .receipt {
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+`;
+
+  // Encabezado
+  if (header) {
+    html += '        <div class="header">\n';
+    if (header.title) {
+      html += `            <div class="title">${escapeHtml(header.title)}</div>\n`;
+    }
+    if (header.subtitle) {
+      html += `            <div class="subtitle">${escapeHtml(header.subtitle)}</div>\n`;
+    }
+    html += '            <span class="separator-line">=====================================</span>\n';
+    html += '        </div>\n';
+  }
+
+  // Orden y fecha
+  if (orderNumber || dateTime) {
+    if (orderNumber) {
+      html += `        <div class="order-info">Orden: ${escapeHtml(orderNumber)}</div>\n`;
+    }
+    if (dateTime) {
+      html += `        <div class="order-info">${escapeHtml(dateTime)}</div>\n`;
+    }
+    html += '        <span class="separator-line">-------------------------------------</span>\n';
+  }
+
+  // Items
+  html += '        <div class="items">\n';
+  if (items && Array.isArray(items)) {
+    for (const item of items) {
+      const qty = item.quantity || 1;
+      const unitPrice = item.price || 0;
+      const itemTotal = unitPrice * qty;
+
+      html += '            <div class="item">\n';
+      html += `                <div class="item-name">${escapeHtml(item.name)}</div>\n`;
+      html += `                <div class="item-qty-price"><span>${qty}x $${unitPrice.toFixed(2)}</span><span>$${itemTotal.toFixed(2)}</span></div>\n`;
+      
+      if (item.description) {
+        html += `                <div class="item-description">${escapeHtml(item.description)}</div>\n`;
+      }
+      
+      html += '            </div>\n';
+    }
+  }
+  html += '        </div>\n';
+
+  // Resumen
+  html += '        <span class="separator-line">-------------------------------------</span>\n';
+  html += '        <div class="summary">\n';
+
+  if (subtotal || items) {
+    const sub = subtotal || items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    html += `            <div class="summary-line"><span class="summary-label">Subtotal</span><span class="summary-value">$${sub.toFixed(2)}</span></div>\n`;
+  }
+
+  if (discount && discount > 0) {
+    const discountAmount = typeof discount === 'object' ? (discount.amount || 0) : discount;
+    html += `            <div class="summary-line"><span class="summary-label">Descuento</span><span class="summary-value">-$${discountAmount.toFixed(2)}</span></div>\n`;
+  }
+
+  if (tax && tax > 0) {
+    html += `            <div class="summary-line"><span class="summary-label">Impuesto</span><span class="summary-value">$${tax.toFixed(2)}</span></div>\n`;
+  }
+
+  if (total) {
+    html += `            <div class="total-line"><span class="summary-label">TOTAL</span><span class="summary-value">$${total.toFixed(2)}</span></div>\n`;
+  }
+
+  html += '        </div>\n';
+
+  if (paymentMethod) {
+    html += `        <div class="payment-method">Pago: ${escapeHtml(paymentMethod)}</div>\n`;
+  }
+
+  // Footer
+  html += '        <div class="footer">\n';
+  if (footer) {
+    if (Array.isArray(footer)) {
+      for (const line of footer) {
+        html += `            <div class="footer-line">${escapeHtml(line)}</div>\n`;
+      }
+    } else {
+      html += `            <div class="footer-line">${escapeHtml(footer)}</div>\n`;
+    }
+  }
+  html += '        </div>\n';
+
+  html += `    </div>
+    <script>
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+</body>
+</html>`;
+
+  return html;
+}
+
+/**
+ * Escapar HTML para prevenir inyecciones
+ */
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
   const {
     header,
     items,
