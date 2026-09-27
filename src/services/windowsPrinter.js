@@ -5,16 +5,16 @@
 
 const logger = require('../utils/logger');
 let escpos;
-let usbPrinter;
+let USB;
 
 // Intentar cargar escpos (puede no estar disponible en macOS)
 try {
   escpos = require('escpos');
-  usbPrinter = require('escpos-usb');
-  escpos.USB = usbPrinter;
+  USB = require('escpos-usb');
 } catch (err) {
   logger.warn('escpos-usb no disponible (esperado en macOS)', { error: err.message });
   escpos = null;
+  USB = null;
 }
 
 class WindowsPrinter {
@@ -23,19 +23,21 @@ class WindowsPrinter {
    */
   static async connectUSB() {
     try {
-      if (!escpos) {
+      if (!escpos || !USB) {
         throw new Error('escpos-usb no está disponible. Instala con: npm install escpos escpos-usb');
       }
 
-      // Buscar impresoras USB conectadas
-      const devices = escpos.USB.findPrinter();
+      // Buscar dispositivos USB
+      const devices = USB.getDeviceList();
       
       if (!devices || devices.length === 0) {
         throw new Error('No se encontró impresora térmica USB conectada');
       }
 
+      logger.debug('Dispositivos USB encontrados', { count: devices.length });
+
       // Conectar a la primera impresora encontrada
-      const device = new escpos.USB(devices[0]);
+      const device = new USB(devices[0]);
       const printer = new escpos.Printer(device);
 
       return { device, printer };
