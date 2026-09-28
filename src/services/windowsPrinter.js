@@ -1,18 +1,16 @@
 /**
  * Integración con impresoras de Windows
- * Usa acceso directo USB con escpos-usb (después de instalar WinUSB con Zadig)
+ * Usa acceso directo USB con escpos 2.5.2 (incluye adaptador USB)
  */
 
 const logger = require('../utils/logger');
 let escpos;
 
-// Intentar cargar escpos y escpos-usb
+// Intentar cargar escpos (USB adapter incluido en 2.5.2)
 try {
   escpos = require('escpos');
-  // Importar adaptador USB
-  escpos.USB = require('escpos-usb');
 } catch (err) {
-  logger.warn('escpos o escpos-usb no disponible', { error: err.message });
+  logger.warn('escpos no disponible', { error: err.message });
   escpos = null;
 }
 
@@ -22,13 +20,13 @@ class WindowsPrinter {
    */
   static async printText(printerName, text, options = {}) {
     try {
-      if (!escpos || !escpos.USB) {
-        throw new Error('escpos o escpos-usb no están disponibles. Instala con: npm install escpos escpos-usb');
+      if (!escpos) {
+        throw new Error('escpos no está disponible. Instala con: npm install escpos@2.5.2');
       }
 
       return new Promise((resolve, reject) => {
         try {
-          // Crear dispositivo USB
+          // Crear dispositivo USB (incluido en escpos 2.5.2)
           const device = new escpos.USB();
           
           // Crear impresora
@@ -43,6 +41,8 @@ class WindowsPrinter {
             }
 
             try {
+              logger.debug('Dispositivo USB abierto, iniciando impresión');
+              
               // Inicializar impresora
               printer.initialize();
 
@@ -63,13 +63,13 @@ class WindowsPrinter {
                   logger.error('Error cerrando dispositivo', { error: closeError.message });
                   reject(closeError);
                 } else {
-                  logger.info(`✓ Impresión enviada por USB`);
+                  logger.info(`✓ Impresión enviada por USB exitosamente`);
                   resolve(true);
                 }
               });
 
             } catch (printError) {
-              logger.error('Error durante impresión', { error: printError.message });
+              logger.error('Error durante impresión', { error: printError.message, stack: printError.stack });
               device.close(function() {
                 reject(printError);
               });
