@@ -5,93 +5,83 @@
 
 const logger = require('../utils/logger');
 let escpos;
-let USB;
 
 // Intentar cargar escpos (puede no estar disponible en macOS)
 try {
   escpos = require('escpos');
-  USB = require('escpos-usb');
 } catch (err) {
-  logger.warn('escpos-usb no disponible (esperado en macOS)', { error: err.message });
+  logger.warn('escpos no disponible (esperado en macOS)', { error: err.message });
   escpos = null;
-  USB = null;
 }
 
 class WindowsPrinter {
   /**
-   * Conectar a impresora térmica por USB
-   */
-  static async connectUSB() {
-    try {
-      if (!escpos || !USB) {
-        throw new Error('escpos-usb no está disponible. Instala con: npm install escpos escpos-usb');
-      }
-
-      // Buscar dispositivos USB
-      const devices = USB.getDeviceList();
-      
-      if (!devices || devices.length === 0) {
-        throw new Error('No se encontró impresora térmica USB conectada');
-      }
-
-      logger.debug('Dispositivos USB encontrados', { count: devices.length });
-
-      // Conectar a la primera impresora encontrada
-      const device = new USB(devices[0]);
-      const printer = new escpos.Printer(device);
-
-      return { device, printer };
-    } catch (error) {
-      logger.error('Error conectando a impresora USB', { error: error.message });
-      throw error;
-    }
-  }
-
-  /**
    * Imprimir en Windows usando acceso directo USB
    */
   static async printText(printerName, text, options = {}) {
-    let device = null;
-    let printer = null;
-
     try {
-      const connection = await this.connectUSB();
-      device = connection.device;
-      printer = connection.printer;
-
-      // Inicializar impresora
-      printer.initialize();
-
-      // Enviar texto
-      printer.text(text);
-
-      // Dos saltos de línea
-      printer.feed(2);
-
-      // Corte si está habilitado
-      if (options.cut !== false) {
-        printer.cut();
+      if (!escpos) {
+        throw new Error('escpos no está disponible. Instala con: npm install escpos');
       }
 
-      // Ejecutar comandos enviados
-      await printer.close();
+      return new Promise((resolve, reject) => {
+        try {
+          // Crear dispositivo USB
+          const device = new escpos.USB();
+          
+          // Crear impresora
+          const printer = new escpos.Printer(device);
 
-      logger.info(`✓ Impresión enviada por USB`);
+          // Abrir dispositivo
+          device.open(function(error) {
+            if (error) {
+              logger.error('Error abriendo dispositivo USB', { error: error.message });
+              reject(error);
+              return;
+            }
 
-      return true;
+            try {
+              // Inicializar impresora
+              printer.initialize();
+
+              // Enviar texto
+              printer.text(text);
+
+              // Dos saltos de línea
+              printer.feed(2);
+
+              // Corte si está habilitado
+              if (options.cut !== false) {
+                printer.cut();
+              }
+
+              // Cerrar dispositivo
+              device.close(function(closeError) {
+                if (closeError) {
+                  logger.error('Error cerrando dispositivo', { error: closeError.message });
+                  reject(closeError);
+                } else {
+                  logger.info(`✓ Impresión enviada por USB`);
+                  resolve(true);
+                }
+              });
+
+            } catch (printError) {
+              logger.error('Error durante impresión', { error: printError.message });
+              device.close(function() {
+                reject(printError);
+              });
+            }
+          });
+
+        } catch (error) {
+          logger.error('Error al imprimir por USB', { error: error.message });
+          reject(error);
+        }
+      });
 
     } catch (error) {
       logger.error('Error al imprimir por USB', { error: error.message });
-      
-      // Intentar cerrar conexión si falla
-      if (device) {
-        try {
-          await device.close();
-        } catch (err) {
-          logger.debug('Error cerrando dispositivo', { error: err.message });
-        }
-      }
-
       throw error;
     }
   }
