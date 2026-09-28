@@ -6,11 +6,13 @@
 const logger = require('../utils/logger');
 let escpos;
 
-// Intentar cargar escpos (puede no estar disponible en macOS)
+// Intentar cargar escpos y escpos-usb
 try {
   escpos = require('escpos');
+  // Importar adaptador USB
+  escpos.USB = require('escpos-usb');
 } catch (err) {
-  logger.warn('escpos no disponible (esperado en macOS)', { error: err.message });
+  logger.warn('escpos o escpos-usb no disponible', { error: err.message });
   escpos = null;
 }
 
@@ -20,8 +22,8 @@ class WindowsPrinter {
    */
   static async printText(printerName, text, options = {}) {
     try {
-      if (!escpos) {
-        throw new Error('escpos no está disponible. Instala con: npm install escpos');
+      if (!escpos || !escpos.USB) {
+        throw new Error('escpos o escpos-usb no están disponibles. Instala con: npm install escpos escpos-usb');
       }
 
       return new Promise((resolve, reject) => {
@@ -75,7 +77,7 @@ class WindowsPrinter {
           });
 
         } catch (error) {
-          logger.error('Error al imprimir por USB', { error: error.message });
+          logger.error('Error al crear dispositivo USB', { error: error.message });
           reject(error);
         }
       });
