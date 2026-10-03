@@ -11,7 +11,11 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "node scripts/test-api.js"
+    "test": "node scripts/test-api.js",
+    "create-dist": "node scripts/create-distribution.js",
+    "create-portable": "node scripts/create-portable.js",
+    "install-service": "node scripts/install-service.js",
+    "uninstall-service": "node scripts/uninstall-service.js"
   },
   "keywords": [
     "thermal-printer",
@@ -25,6 +29,7 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "iconv-lite": "^0.4.24",
+    "node-windows": "^1.0.0-beta.8",
     "sharp": "^0.33.5",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"

@@ -1,0 +1,32 @@
+<service>
+	<id>thermalprinteragent.exe</id>
+	<name>ThermalPrinterAgent</name>
+	<description>Agente Local de Impresoras Térmicas</description>
+	<executable>C:\Program Files\nodejs\node.exe</executable>
+	<argument>--max-old-space-size=256</argument>
+	<argument>C:\Users\USER\Documents\PERSONAL\agent-print\node_modules\node-windows\lib\wrapper.js</argument>
+	<argument>--file</argument>
+	<argument>C:\Users\USER\Documents\PERSONAL\agent-print\src\index.js</argument>
+	<argument>--scriptoptions=</argument>
+	<argument>--log</argument>
+	<argument>ThermalPrinterAgent wrapper</argument>
+	<argument>--grow</argument>
+	<argument>0.25</argument>
+	<argument>--wait</argument>
+	<argument>1</argument>
+	<argument>--maxrestarts</argument>
+	<argument>3</argument>
+	<argument>--abortonerror</argument>
+	<argument>n</argument>
+	<argument>--stopparentfirst</argument>
+	<argument>undefined</argument>
+	<logmode>rotate</logmode>
+	<stoptimeout>30sec</stoptimeout>
+	<env name="NODE_ENV" value="production"/>
+	<serviceaccount>
+		<domain>DESKTOP-QUOI083</domain>
+		<user>LocalSystem</user>
+		<password></password>
+	</serviceaccount>
+	<workingdirectory>C:\Users\USER\Documents\PERSONAL\agent-print</workingdirectory>
+</service>

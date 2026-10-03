@@ -30,10 +30,10 @@ async function loadLocalLogo(logoPath) {
 /**
  * Convierte una imagen a bitmap ESC/POS
  * @param {Buffer} imageBuffer - Buffer de la imagen
- * @param {number} maxWidth - Ancho máximo en píxeles (POS-80C = 384px)
+ * @param {number} maxWidth - Ancho máximo en píxeles (POS-80C = 384px, recomendado 192-256 para logos más pequeños)
  * @returns {Promise<Buffer>} Buffer con comandos ESC/POS
  */
-async function convertToEscPosBitmap(imageBuffer, maxWidth = 384) {
+async function convertToEscPosBitmap(imageBuffer, maxWidth = 256) {
   try {
     // Procesar imagen con sharp
     const image = sharp(imageBuffer);
@@ -136,8 +136,13 @@ async function initializeLogo(logoPath = path.join(process.cwd(), 'logos', 'busi
     const imageBuffer = await loadLocalLogo(logoPath);
     logger.info('Logo cargado exitosamente', { sizeBytes: imageBuffer.length });
 
+    // Obtener ancho máximo desde variable de entorno o usar valor por defecto (256px = ~67% del ancho total)
+    // Valores sugeridos: 192 (pequeño), 256 (mediano), 320 (grande), 384 (ancho completo)
+    const logoMaxWidth = parseInt(process.env.LOGO_MAX_WIDTH) || 256;
+    logger.info('Procesando logo con ancho máximo', { maxWidth: logoMaxWidth });
+
     // Convertir a comandos ESC/POS
-    const logoCommand = await convertToEscPosBitmap(imageBuffer, 384);
+    const logoCommand = await convertToEscPosBitmap(imageBuffer, logoMaxWidth);
     cachedLogoCommand = logoCommand;
 
     logger.info('Logo procesado y almacenado en caché', { commandSize: logoCommand.length });
