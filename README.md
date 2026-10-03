@@ -11,31 +11,68 @@ Servicio API REST que actúa como intermediario entre aplicaciones web y impreso
 ✅ **Cola de Impresión** - Gestiona trabajos de forma asíncrona
 ✅ **Reintentos Automáticos** - Reintenta trabajos fallidos
 ✅ **Múltiples Formatos** - Soporte para texto, recibos, etiquetas y datos raw
-✅ **Instalador Automático** - Se instala como servicio del sistema
+✅ **Logo de Empresa** - Imprime logos desde archivo local en cada factura
 ✅ **Cross-platform** - Windows, macOS y Linux
+
+## Requisitos
+
+- **Node.js**: >= 18.0.0 (recomendado: v20.11.1)
+- **npm**: >= 9.0.0
+- **Sistema Operativo**: Windows 10/11, macOS, o Linux
 
 ## Instalación
 
 ### 1. Clonar/Descargar el repositorio
 
 ```bash
+git clone <url-del-repo>
 cd agent-print
 ```
 
-### 2. Instalar dependencias
+### 2. Verificar versión de Node.js
+
+```bash
+node --version
+# Debe ser >= 18.0.0
+```
+
+Si necesitas instalar/actualizar Node.js:
+- **Windows**: Descarga desde [nodejs.org](https://nodejs.org/) (versión LTS recomendada)
+- **macOS**: `brew install node@20` o descarga desde [nodejs.org](https://nodejs.org/)
+- **Linux**: Usa [nvm](https://github.com/nvm-sh/nvm) o el gestor de paquetes de tu distribución
+
+Con `nvm` (recomendado):
+```bash
+nvm install 20.11.1
+nvm use 20.11.1
+```
+
+### 3. Instalar dependencias
 
 ```bash
 npm install
 ```
 
-### 3. Configurar variables de entorno
+### 4. Configurar variables de entorno
 
 ```bash
 cp .env.example .env
 # Editar .env si es necesario
 ```
 
-### 4. (Opcional) Instalar como servicio del sistema
+### 5. (Opcional) Agregar logo de tu empresa
+
+Guarda tu logo como `logos/business-logo.png` en la raíz del proyecto. Ver [logos/README.md](logos/README.md) para más detalles.
+
+### 6. Iniciar el servidor
+
+```bash
+npm start
+```
+
+El servidor se iniciará en `http://localhost:3002`
+
+### 7. (Opcional) Instalar como servicio del sistema
 
 **Windows (como Administrador):**
 ```bash

@@ -10,6 +10,7 @@ require('dotenv').config();
 const logger = require('./utils/logger');
 const printerManager = require('./services/printerManager');
 const printQueue = require('./services/printQueue');
+const imageProcessor = require('./services/imageProcessor');
 
 // Routers
 const printerRoutes = require('./routes/printers');
@@ -24,13 +25,39 @@ const HOST = process.env.HOST || '127.0.0.1';
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || '*',
-  credentials: true
+  origin: function(origin, callback) {
+    const allowed = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim());
+    
+    // Permitir requests sin origin (ej. curl, aplicaciones no-browser)
+    if (!origin || allowed.includes(origin) || allowed.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS no permitido para este origen'));
+    }
+  },
+  credentials: false,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Access-Control-Request-Private-Network']
 }));
 
 // Middleware de logging
 app.use((req, res, next) => {
   logger.debug(`${req.method} ${req.path}`, { body: req.body });
+  next();
+});
+
+// Middleware para Private Network Access (permite que fronts remotos en HTTPS accedan)
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  
+  // Preflight request
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Access-Control-Request-Private-Network');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(200).end();
+  }
+  
   next();
 });
 
@@ -70,6 +97,10 @@ const startServer = async () => {
     // Inicializar gestor de impresoras
     await printerManager.initialize();
     logger.info('Gestor de impresoras inicializado');
+
+    // Inicializar logo (si existe)
+    await imageProcessor.initializeLogo();
+    logger.info('Logo inicializado');
 
     // Inicializar cola de impresión
     printQueue.start();

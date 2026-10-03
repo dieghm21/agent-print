@@ -56,23 +56,30 @@ router.post('/text', (req, res) => {
 
 /**
  * POST /api/print/receipt
- * Imprimir recibo profesional
+ * Imprimir factura profesional
  */
 router.post('/receipt', (req, res) => {
   try {
     const { 
       printerId, 
-      header, 
-      items, 
-      subtotal,
-      discount,
-      tax,
-      total, 
-      footer, 
-      paymentMethod,
-      orderNumber,
+      items,
+      total,
+      cut = true,
+      // Datos del negocio
+      businessName,
+      businessNit,
+      businessAddress,
+      businessPhone,
+      // Datos de la factura
+      invoiceNumber,
       dateTime,
-      cut = true 
+      pointOfSale,
+      operator,
+      // Datos del cliente
+      customer,
+      // Método de pago
+      paymentMethod,
+      change
     } = req.body;
 
     if (!printerId) {
@@ -94,20 +101,6 @@ router.post('/receipt', (req, res) => {
       }
     }
 
-    // Generar vista previa del recibo
-    const previewText = generateReceiptPreview({
-      header,
-      items,
-      subtotal,
-      discount,
-      tax,
-      total,
-      footer,
-      paymentMethod,
-      orderNumber,
-      dateTime
-    });
-
     // Validar que la impresora existe
     if (!printerManager.getPrinter(printerId)) {
       return res.status(404).json({ success: false, error: 'Impresora no encontrada' });
@@ -117,16 +110,19 @@ router.post('/receipt', (req, res) => {
       printerId,
       type: 'receipt',
       content: { 
-        header, 
-        items, 
-        subtotal,
-        discount,
-        tax,
-        total, 
-        footer,
+        items,
+        total,
+        businessName,
+        businessNit,
+        businessAddress,
+        businessPhone,
+        invoiceNumber,
+        dateTime,
+        pointOfSale,
+        operator,
+        customer,
         paymentMethod,
-        orderNumber,
-        dateTime
+        change
       },
       cut
     };
@@ -135,30 +131,29 @@ router.post('/receipt', (req, res) => {
 
     res.status(202).json({
       success: true,
-      message: 'Recibo encolado exitosamente',
+      message: 'Factura encolada exitosamente',
       jobId,
       status: 'pending',
-      preview: previewText,
       receipt: {
         itemsCount: items.length,
         total,
-        orderNumber
+        invoiceNumber
       }
     });
 
-    logger.info('Trabajo de recibo encolado', {
+    logger.info('Trabajo de factura encolado', {
       jobId,
       printerId,
       itemCount: items.length,
       total,
-      orderNumber
+      invoiceNumber
     });
 
   } catch (error) {
-    logger.error('Error al encolar recibo', { error: error.message });
+    logger.error('Error al encolar factura', { error: error.message });
     res.status(500).json({
       success: false,
-      error: 'Error al encolar recibo',
+      error: 'Error al encolar factura',
       message: error.message
     });
   }

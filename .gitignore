@@ -16,3 +16,8 @@ yarn-error.log*
 dist/
 build/
 .cache/
+# Logo de empresa (no subir a git por privacidad)
+logos/business-logo.png
+logos/business-logo.jpg
+logos/business-logo.jpeg
+logos/business-logo.gif
